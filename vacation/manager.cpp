@@ -42,7 +42,6 @@ bool Manager::add_customer(long int customerId)
 bool Manager::del_customer(long int customerId)
 {
     Manager::Reservations_t* reservationTables[NUM_RESERVATION_TYPE];
-    bool status;
 
     if(m_customer_table.find(customerId) == m_customer_table.end())
       return false;

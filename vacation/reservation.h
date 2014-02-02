@@ -1,6 +1,7 @@
 #ifndef FF_BENCH_VACATION_RESERVATION_H_
 #define FF_BENCH_VACATION_RESERVATION_H_
 #include <memory>
+typedef unsigned long ulong;
 
 enum OperationType {
     OPERATION_MAKE_RESERVATION = 0L,

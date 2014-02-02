@@ -5,12 +5,8 @@
 #include <functional>
 #include <cassert>
 
+#include <vector>
 
-
-static bool  addCustomer (Manager_ptr managerPtr, long id, long num, long price)
-{
-  managerPtr->add_customer(id);
-}
 
 static Manager_ptr initializeManager ()
 {
