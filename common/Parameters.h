@@ -1,0 +1,4 @@
+#ifndef FF_BENCH_PARAMETERS_H_
+#define FF_BENCH_PARAMETERS_H_
+
+#endif
