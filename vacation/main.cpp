@@ -4,6 +4,7 @@
 #include "manager.h"
 #include <functional>
 #include <cassert>
+#include <stdio.h>
 
 
 
@@ -33,7 +34,7 @@ static Manager_ptr initializeManager ()
     printf("Initializing manager... ");
     fflush(stdout);
 
-    numRelation = (long)global_params[PARAM_RELATIONS];
+    numRelation = (long)params::instance()[P_RELATIONS];
     ids = (long*)malloc(numRelation * sizeof(long));
     for (i = 0; i < numRelation; i++) {
         ids[i] = i + 1;
@@ -77,14 +78,15 @@ initializeClients (Manager_ptr managerPtr)
     std::vector<Client_ptr> clients;
     
     long i;
-    long numClient = (long)global_params[PARAM_CLIENTS];
-    long numTransaction = (long)global_params[PARAM_TRANSACTIONS];
+    long numClient = (long)params::instance()[P_CLIENTS];
+    long numTransaction = (long)params::instance()[P_TRANSACTIONS];
     long numTransactionPerClient;
-    long numQueryPerTransaction = (long)global_params[PARAM_NUMBER];
-    long numRelation = (long)global_params[PARAM_RELATIONS];
-    long percentQuery = (long)global_params[PARAM_QUERIES];
+    long numQueryPerTransaction = (long)params::instance()[P_NUMBER];
+    long numRelation = (long)params::instance()[P_RELATIONS];
+    long percentQuery = (long)params::instance()[P_QUERIES];
     long queryRange;
-    long percentUser = (long)global_params[PARAM_USER];
+    long percentUser = (long)params::instance()[P_USER];
+    long numThread = (long)params::instance()[P_THREADS];
 
     printf("Initializing clients... ");
     fflush(stdout);
@@ -110,6 +112,7 @@ initializeClients (Manager_ptr managerPtr)
     printf("    Query percent       = %li\n", percentQuery);
     printf("    Query range         = %li\n", queryRange);
     printf("    Percent user        = %li\n", percentUser);
+    printf("    Thread number       = %li\n", numThread);
     fflush(stdout);
 
     return clients;
@@ -118,7 +121,7 @@ initializeClients (Manager_ptr managerPtr)
 void checkTables (Manager_ptr managerPtr)
 {
     long i;
-    long numRelation = (long)global_params[PARAM_RELATIONS];
+    long numRelation = (long)params::instance()[P_RELATIONS];
     std::map<long, Customer_ptr> & customerTablePtr = managerPtr->customer_table();
     
     printf("Checking tables... ");
@@ -126,7 +129,7 @@ void checkTables (Manager_ptr managerPtr)
     
     
     /* Check for unique customer IDs */
-    long percentQuery = (long)global_params[PARAM_QUERIES];
+    long percentQuery = (long)params::instance()[P_QUERIES];
     long queryRange = (long)((double)percentQuery / 100.0 * (double)numRelation + 0.5);
     long maxCustomerId = queryRange + 1;
     for (i = 1; i <= maxCustomerId; i++) {
@@ -155,10 +158,13 @@ void checkTables (Manager_ptr managerPtr)
 
 int main(int argc, char *argv[]){
     /* Initialization */
-    parseArgs(argc, (char** const)argv);
+    if (params::parseArgs(argc, (char** const)argv) != 0)
+      return 1;
+    
     auto managerPtr = initializeManager();
     auto clients = initializeClients(managerPtr);
-    long numThread = global_params[PARAM_CLIENTS];
+    int iThrdNum = params::instance()[P_THREADS];
+    
     
     /* Run transactions */
     printf("Running clients... ");
