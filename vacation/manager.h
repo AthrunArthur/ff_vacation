@@ -58,7 +58,7 @@ public:
   long query_customer_bill(long id);
   
   bool reserve_car(long customerId, long carId){
-    reserve(m_car_table,
+    return reserve(m_car_table,
                    m_customer_table,
                    customerId,
                    carId,
@@ -66,14 +66,14 @@ public:
   }
   
   bool reserve_room(long customerId, long roomId){
-    reserve(m_room_table,
+    return reserve(m_room_table,
                    m_customer_table,
                    customerId,
                    roomId,
                    RESERVATION_ROOM);
   }
   bool reserve_flight(long customerId, long flightId){
-    reserve(m_flight_table,
+    return reserve(m_flight_table,
                    m_customer_table,
                    customerId,
                    flightId,
@@ -81,7 +81,7 @@ public:
   }
   
   bool cancel_car(long customerId, long carId){
-    cancel(m_car_table,
+    return cancel(m_car_table,
                    m_customer_table,
                    customerId,
                    carId,
@@ -89,14 +89,14 @@ public:
   }
   
   bool cancel_room(long customerId, long roomId){
-    cancel(m_room_table,
+    return cancel(m_room_table,
                    m_customer_table,
                    customerId,
                    roomId,
                    RESERVATION_ROOM);
   }
   bool cancel_flight(long customerId, long flightId){
-    cancel(m_flight_table,
+    return cancel(m_flight_table,
                    m_customer_table,
                    customerId,
                    flightId,

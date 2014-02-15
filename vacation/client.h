@@ -38,6 +38,12 @@ public:
     long numQueryPerTransaction;
     long queryRange;
     long percentUser;
+    
+protected:
+    static void make_reservation(std::shared_ptr<Client>  clientPtr);
+    static void action_del_customer(std::shared_ptr<Client> clientPtr);
+    static void action_update_label(std::shared_ptr<Client> clientPtr);
+    
 };
 
 typedef std::shared_ptr<Client> Client_ptr;
