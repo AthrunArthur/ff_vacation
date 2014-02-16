@@ -1,72 +1,76 @@
 #include "args.h"
+#include <boost/format.hpp>
+#include <iostream>
 
-#include<stdio.h>
-#include<stdlib.h>
-#include <getopt.h>
+std::shared_ptr<params> params::s_pInstance(nullptr);
 
-
-double global_params[256]; /* 256 = ascii limit */
-
-void displayUsage (const char* appName)
+params& params::instance()
 {
-    printf("Usage: %s [options]\n", appName);
-    puts("\nOptions:                                             (defaults)\n");
-    printf("    c <UINT>   Number of [c]lients                   (%i)\n",
-           PARAM_DEFAULT_CLIENTS);
-    printf("    n <UINT>   [n]umber of user queries/transaction  (%i)\n",
-           PARAM_DEFAULT_NUMBER);
-    printf("    q <UINT>   Percentage of relations [q]ueried     (%i)\n",
-           PARAM_DEFAULT_QUERIES);
-    printf("    r <UINT>   Number of possible [r]elations        (%i)\n",
-           PARAM_DEFAULT_RELATIONS);
-    printf("    t <UINT>   Number of [t]ransactions              (%i)\n",
-           PARAM_DEFAULT_TRANSACTIONS);
-    printf("    u <UINT>   Percentage of [u]ser transactions     (%i)\n",
-           PARAM_DEFAULT_USER);
-    exit(1);
-}
-void setDefaultParams ()
-{
-    global_params[PARAM_CLIENTS]      = PARAM_DEFAULT_CLIENTS;
-    global_params[PARAM_NUMBER]       = PARAM_DEFAULT_NUMBER;
-    global_params[PARAM_QUERIES]      = PARAM_DEFAULT_QUERIES;
-    global_params[PARAM_RELATIONS]    = PARAM_DEFAULT_RELATIONS;
-    global_params[PARAM_TRANSACTIONS] = PARAM_DEFAULT_TRANSACTIONS;
-    global_params[PARAM_USER]         = PARAM_DEFAULT_USER;
+  return * s_pInstance.get();
 }
 
-void parseArgs (long argc, char* const argv[])
+params::params()
+: m_oOpDes("Vacation Benchmark for Function Flow (athrunarthur@gmail.com) ")
 {
-    long i;
-    long opt;
-
-    opterr = 0;
-
-    setDefaultParams();
-
-    while ((opt = getopt(argc, argv, "c:n:q:r:t:u:")) != -1) {
-        switch (opt) {
-            case 'c':
-            case 'n':
-            case 'q':
-            case 'r':
-            case 't':
-            case 'u':
-                global_params[(unsigned char)opt] = atol(optarg);
-                break;
-            case '?':
-            default:
-                opterr++;
-                break;
-        }
-    }
-
-    for (i = optind; i < argc; i++) {
-        fprintf(stderr, "Non-option argument: %s\n", argv[i]);
-        opterr++;
-    }
-
-    if (opterr) {
-        displayUsage(argv[0]);
-    }
+  m_oOpDes.add_options()
+  ("clients", boost::program_options::value<int>(), boost::str(boost::format("Number of clients, default: %1%")%PARAM_DEFAULT_CLIENTS).c_str())
+  ("qtr", boost::program_options::value<int>(), boost::str(boost::format("Number of user queries/transaction, default: %1%1")%PARAM_DEFAULT_NUMBER).c_str())
+  ("query", boost::program_options::value<int>(), boost::str(boost::format("Percentage of relations queried, default is %1%")%PARAM_DEFAULT_QUERIES).c_str())
+  ("relation", boost::program_options::value<int>(), 
+    boost::str(boost::format("Number of possible relations, default is %1%")%PARAM_DEFAULT_RELATIONS).c_str())
+  ("transaction", boost::program_options::value<int>(),
+    boost::str(boost::format("Number of transactions, default is %1%")%PARAM_DEFAULT_TRANSACTIONS).c_str())
+  ("user", boost::program_options::value<int>(),
+    boost::str(boost::format("Percentage of user transactions, default is %1%")%PARAM_DEFAULT_USER).c_str())
+  ("thread", boost::program_options::value<int>(),
+    boost::str(boost::format("Number of threads, default is %1%")%PARAM_DEFAULT_THREADS).c_str())
+  ("ff-lock", "Using Function Flow lock")
+  ("help", "Print this help information.");
+  
 }
+
+int params::parse_args(long int argc, char*const argv[])
+{
+  boost::program_options::store(boost::program_options::parse_command_line(argc, argv, m_oOpDes), m_oVars);
+  boost::program_options::notify(m_oVars);
+  
+  if(m_oVars.count("help"))
+  {
+    std::cout<<m_oOpDes<<std::endl;
+    return -1;
+  }
+#define ADD_OPTION(name, type, dv)	if(m_oVars.count(name)) \
+    {  \
+      m_oParams.insert(std::make_pair(type, m_oVars[name].as<int>())); \
+    } \
+    else m_oParams.insert(std::make_pair(type, dv));
+    
+    ADD_OPTION("clients", P_CLIENTS, PARAM_DEFAULT_CLIENTS)
+    ADD_OPTION("qtr", P_NUMBER, PARAM_DEFAULT_NUMBER)
+    ADD_OPTION("query", P_QUERIES, PARAM_DEFAULT_QUERIES)
+    ADD_OPTION("relation", P_RELATIONS, PARAM_DEFAULT_RELATIONS)
+    ADD_OPTION("transaction", P_TRANSACTIONS, PARAM_DEFAULT_TRANSACTIONS)
+    ADD_OPTION("user", P_USER, PARAM_DEFAULT_USER)
+    ADD_OPTION("thread", P_THREADS, PARAM_DEFAULT_THREADS)
+    if(m_oVars.count("ff-lock"))
+    {
+      m_oParams.insert(std::make_pair(P_FF_LOCK, 1));
+    }
+    else m_oParams.insert(std::make_pair(P_FF_LOCK, 0));
+    
+#undef ADD_OPTION
+      
+  return 0;
+}
+
+int params::operator[](param_types pt)
+{
+  return m_oParams[pt];
+}
+
+int params::parseArgs(long int argc, char*const argv[])
+{
+  s_pInstance = std::shared_ptr<params>(new params());
+  return s_pInstance->parse_args(argc, argv);
+}
+

@@ -40,9 +40,9 @@ public:
     long percentUser;
     
 protected:
-    static void make_reservation(std::shared_ptr<Client>  clientPtr);
+    static void make_reservation(std::shared_ptr<Client>  clientPtr, long rt);
     static void action_del_customer(std::shared_ptr<Client> clientPtr);
-    static void action_update_label(std::shared_ptr<Client> clientPtr);
+    static void action_update_label(std::shared_ptr<Client> clientPtr, long rt);
     
 };
 

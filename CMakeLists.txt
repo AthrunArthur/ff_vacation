@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(ff_bench)
+project(ff_vacation)
+add_definitions(-std=c++11)
+add_definitions(-g)
+#add_definitions(-O2)
+
+include_directories(${PROJECT_SOURCE_DIR}/../ff/include)
+message(${PROJECT_SOURCE_DIR}/../ff/include)
+
+set(LIBS_LINK_LIBS ff pthread)
+link_directories(${PROJECT_SOURCE_DIR}/../bin)
+
+
 
 add_definitions(-std=c++11)
 add_definitions(-g)
@@ -18,3 +29,4 @@ vacation/manager.cpp)
 
 
 ADD_EXECUTABLE(vacation ${VACATION_SRC})
+target_link_libraries(vacation boost_program_options ${LIBS_LINK_LIBS})

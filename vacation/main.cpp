@@ -5,6 +5,11 @@
 #include <functional>
 #include <cassert>
 #include <stdio.h>
+#include <chrono>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <ff.h>
+
 
 #include <vector>
 
@@ -161,16 +166,46 @@ int main(int argc, char *argv[]){
     auto clients = initializeClients(managerPtr);
     int iThrdNum = params::instance()[P_THREADS];
     
+      //setting thread number
+  ff::rt::set_hardware_concurrency(iThrdNum);//Set concurrency
+  ff::para<> a;
+  a([]() {});
+  ff::ff_wait(a);
     
     /* Run transactions */
     printf("Running clients... ");
     fflush(stdout);
     
+    std::string output_file = "times.json";
+  boost::property_tree::ptree pt;
+  pt.put("time-unit", "us");
+  ff::scope_guard __t([](){}, [&pt](){boost::property_tree::write_json("time.json", pt);});
+    
+  std::function<void (const std::function<void ()> &)> time = [&pt](const std::function<void () > & f){
+    std::chrono::time_point<std::chrono::system_clock> start, end;
+    start = std::chrono::system_clock::now();
+    f();
+    end = std::chrono::system_clock::now();
+    int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    pt.put("time", elapsed);
+    std::cout<<"time: "<<elapsed <<" us"<<std::endl;
+  };
+  
+  
     //Parallel part
+  time([&clients](){
+    
+    ff::paragroup pg;
     for (Client_ptr p : clients)
     {
-      Client::client_run(p);
+      ff::para<> para;
+      para([&p](){Client::client_run(p);});
+      pg.add(para);
     }
+    ff::ff_wait(ff::all(pg));
+  }
+  );
+    
     puts("done.");
     checkTables(managerPtr);
 

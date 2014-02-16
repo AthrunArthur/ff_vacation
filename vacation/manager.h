@@ -7,6 +7,7 @@
 
 #include <map>
 
+#include <ff.h>
 
 class Manager{
 public:
@@ -14,6 +15,11 @@ public:
   typedef std::map<long, Reservation_ptr> Reservations_t;
   
   Manager(){}
+  
+  ff::mutex &	car_lock(){return m_car_lock;}
+  ff::mutex &	room_lock(){return m_room_lock;}
+  ff::mutex &	flight_lock(){return m_flight_lock;}
+  ff::mutex & 	customer_lock(){return m_customer_lock;}
   
   bool add_reservation(Reservations_t & table, long id, long num, long price);
   
@@ -103,6 +109,7 @@ public:
                    RESERVATION_FLIGHT);
   }
   
+
   
 protected:
   
@@ -122,6 +129,12 @@ protected:
   Reservations_t m_room_table;
   Reservations_t m_flight_table;
   std::map<long, Customer_ptr> m_customer_table;
+  
+  ff::mutex	m_car_lock;
+  ff::mutex	m_room_lock;
+  ff::mutex	m_flight_lock;
+  ff::mutex	m_customer_lock;
+  
 };
 
 typedef std::shared_ptr<Manager> Manager_ptr;

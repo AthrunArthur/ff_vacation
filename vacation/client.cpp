@@ -2,6 +2,13 @@
 #include <array>
 #include <cassert>
 #include <vector>
+#include <iostream>
+#include <ff.h>
+#include "args.h"
+
+#define GRANULARIYT 10000
+#define UPDATE_MAX 10000
+#define DEL_CUSTOMER_MAX 1000
 
 ActionType Client::selectAction(long int r, long int percentUser)
 {
@@ -17,7 +24,7 @@ ActionType Client::selectAction(long int r, long int percentUser)
     return action;
 }
 
-void Client::make_reservation(Client_ptr clientPtr)
+void Client::make_reservation(Client_ptr clientPtr, long rt)
 {
     // This function shall access car, flight, room and customer info!
     
@@ -26,7 +33,6 @@ void Client::make_reservation(Client_ptr clientPtr)
     long numQueryPerTransaction = clientPtr->numQueryPerTransaction;
     long queryRange             = clientPtr->queryRange;
     
-    std::vector<long> types(numQueryPerTransaction);
     std::vector<long> ids(numQueryPerTransaction);
     long maxPrices[NUM_RESERVATION_TYPE] = {-1, -1, -1};
     long maxIds[NUM_RESERVATION_TYPE] = {-1, -1, -1};
@@ -34,15 +40,15 @@ void Client::make_reservation(Client_ptr clientPtr)
     long numQuery = randomPtr->random_generate() % numQueryPerTransaction + 1;
     long customerId = randomPtr->random_generate() % queryRange + 1;
     for (n = 0; n < numQuery; n ++){
-        types[n] = randomPtr->random_generate()%NUM_RESERVATION_TYPE;
         ids[n] = (randomPtr->random_generate() % queryRange) + 1;
     }
+    
     bool isFound = false;
+    //std::cout<<"make_reservation numQuery: "<<numQuery<<std::endl;
     for(n = 0; n < numQuery; n ++){
-        long t = types[n];
         long id = ids[n];
         long price = -1;
-        switch (t) {
+        switch (rt) {
             case RESERVATION_CAR:
                 if(managerPtr->query_car(id) >=0){
                     price = managerPtr->query_car_price(id);
@@ -62,14 +68,16 @@ void Client::make_reservation(Client_ptr clientPtr)
             default:
                 assert(0);
         }
-        if (price > maxPrices[t]) {
-            maxPrices[t] = price;
-            maxIds[t] = id;
+        if (price > maxPrices[rt]) {
+            maxPrices[rt] = price;
+            maxIds[rt] = id;
             isFound = true;
         }
     }
     if (isFound) {
+      managerPtr->customer_lock().lock();
         managerPtr->add_customer(customerId);
+	managerPtr->customer_lock().unlock();
     }
     if (maxIds[RESERVATION_CAR] > 0) {
         managerPtr->reserve_car(customerId, maxIds[RESERVATION_CAR]);
@@ -84,17 +92,29 @@ void Client::make_reservation(Client_ptr clientPtr)
 
 void Client::action_del_customer(std::shared_ptr<Client> clientPtr)
 {
+  
     Random_ptr  randomPtr  = clientPtr->randomPtr;
     Manager_ptr managerPtr = clientPtr->managerPtr;
     long queryRange             = clientPtr->queryRange;
     long customerId = randomPtr->random_generate() % queryRange + 1;
+    
+    managerPtr->car_lock().lock();
+    managerPtr->room_lock().lock();
+    managerPtr->flight_lock().lock();
+    managerPtr->customer_lock().lock();
+    
     long bill = managerPtr->query_customer_bill(customerId);
     if ( bill >= 0){
         managerPtr->del_customer(customerId);
     }
+    
+    managerPtr->customer_lock().unlock();
+    managerPtr->flight_lock().unlock();
+    managerPtr->room_lock().unlock();
+    managerPtr->car_lock().unlock();
 }
 
-void Client::action_update_label(std::shared_ptr<Client> clientPtr)
+void Client::action_update_label(std::shared_ptr<Client> clientPtr, long rt)
 {
     Random_ptr  randomPtr  = clientPtr->randomPtr;
     Manager_ptr managerPtr = clientPtr->managerPtr;
@@ -102,14 +122,12 @@ void Client::action_update_label(std::shared_ptr<Client> clientPtr)
     long numUpdate = randomPtr->random_generate() % numQueryPerTransaction + 1;
     long queryRange             = clientPtr->queryRange;
     
-    std::vector<long> types(numQueryPerTransaction);
     std::vector<long> ids(numQueryPerTransaction);
     std::vector<long> ops(numQueryPerTransaction);
     std::vector<long> prices(numQueryPerTransaction);
     long n;
     for(n = 0; n < numUpdate; n++)
     {
-        types[n] = randomPtr->random_generate() % NUM_RESERVATION_TYPE;
         ids[n] = (randomPtr->random_generate() % queryRange) + 1;
         ops[n] = randomPtr->random_generate() % 2;
         if(ops[n]){
@@ -118,7 +136,7 @@ void Client::action_update_label(std::shared_ptr<Client> clientPtr)
     }
     
     for (n = 0; n < numUpdate; n++) {
-        long t = types[n];
+        long t = rt;
         long id = ids[n];
         long doAdd = ops[n];
         if (doAdd) {
@@ -154,7 +172,7 @@ void Client::action_update_label(std::shared_ptr<Client> clientPtr)
     }
     
 }
-void Client::client_run(  Client_ptr   clientPtr)
+void Client::client_run(Client_ptr   clientPtr)
 {
     //Client_ptr clientPtr = clients[thrd_id];
     
@@ -172,27 +190,86 @@ void Client::client_run(  Client_ptr   clientPtr)
     std::vector<long> prices(numQueryPerTransaction);
     
     long i;
-
+    long  nums[NUM_RESERVATION_TYPE * NUM_RESERVATION_TYPE]{0};
+    
+    
+    std::cout<<"client_run numOperation : "<<numOperation<<std::endl;
     //parallel part
+    ff::paragroup pg;
+    bool using_ff_lock = (params::instance()[P_FF_LOCK] == 1);
+    
     for (i = 0; i < numOperation; i++) {
 
 	long r = randomPtr->random_generate() % 100;
 	ActionType action = selectAction(r, percentUser);
+	long rt = randomPtr->random_generate() % NUM_RESERVATION_TYPE;
 
+	nums[action * NUM_RESERVATION_TYPE + rt] ++;
+	long & tn = nums[action * NUM_RESERVATION_TYPE + rt];
+	ff::mutex * pMutex = nullptr;
+	switch(rt){
+	  case     RESERVATION_CAR:
+	    pMutex = & managerPtr->car_lock();
+	    break;
+	  case  RESERVATION_FLIGHT:
+	    pMutex = & managerPtr->flight_lock();
+	    break;
+	  case  RESERVATION_ROOM:
+	    pMutex = & managerPtr->room_lock();
+	    break;
+	}
+	ff::mutex_id_t mutexID = ff::invalid_mutex_id;
+	if(using_ff_lock)
+	  mutexID = pMutex->id();
         switch (action) {
-
             case ACTION_MAKE_RESERVATION: {
-                make_reservation(clientPtr);
+	      if (tn >= GRANULARIYT)
+	      {
+		//std::cout<<"mutexID "<<reinterpret_cast<uint64_t>(mutexID)<<std::endl;
+		ff::para<> p;
+		p([tn, rt, pMutex, clientPtr](){
+		  pMutex->lock();
+		  for(int i = 0; i < tn; i ++)
+		  {
+		    make_reservation(clientPtr, rt);
+		  }
+		  pMutex->unlock();
+		}, mutexID);
+		pg.add(p);
+		tn = 0;
+	      }
                 break;
             }
 
             case ACTION_DELETE_CUSTOMER: {
-                action_del_customer(clientPtr);
+	      if(tn >= DEL_CUSTOMER_MAX){
+		ff::para<> p;
+		p([tn, clientPtr](){
+		  for(int i = 0; i < tn; i++)
+		  {
+		    action_del_customer(clientPtr);
+		  }
+		});
+		pg.add(p);
+		tn = 0;
+	      }
                 break;
             }
 
             case ACTION_UPDATE_TABLES: {
-                action_update_label(clientPtr);
+	      if(tn >= UPDATE_MAX){
+		ff::para<> p;
+		p([tn, rt, pMutex, clientPtr](){
+		  pMutex->lock();
+		  for(int i = 0; i < tn; ++i)
+		  {
+		      action_update_label(clientPtr, rt);
+		  }
+		  pMutex->unlock();
+		}, mutexID);
+		pg.add(p);
+		tn = 0;
+	      }
                 break;
             }
 
@@ -202,6 +279,7 @@ void Client::client_run(  Client_ptr   clientPtr)
         } /* switch (action) */
 
     } /* for i */
+    ff::ff_wait(ff::all(pg));
 
     //TM_THREAD_EXIT();
 }
