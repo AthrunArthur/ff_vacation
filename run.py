@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 
 max_thrd_num = 8
 trans_num = 6710886
+client_num = 8
 
 def execute_cmd(cmd):
 	p = subprocess.Popen(cmd, shell=True, stdout = subprocess.PIPE)
@@ -20,7 +21,7 @@ def gen_cmd(is_ff, thrd_num):
     s += '--ff-lock '
     
   s += '--transaction=' + str(trans_num)
-    
+  s += ' --clients=' + str(client_num)
   s += ' --thread=' + str(thrd_num)
   
   return s
