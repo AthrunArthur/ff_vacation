@@ -10,7 +10,7 @@ namespace RecordLocks{
                                 {
                                     if(l1.lock < l2.lock)
                                         return true;
-                                    else if(l1.lock == l2.lock && l1.thrd < l1.thrd)
+                                    else if(l1.lock == l2.lock && l1.thrd < l2.thrd)
                                         return true;
                                     else
                                         return false;

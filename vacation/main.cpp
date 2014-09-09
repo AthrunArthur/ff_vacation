@@ -173,6 +173,7 @@ int main(int argc, char *argv[]){
   a([]() {});
   ff::ff_wait(a);
   ff::scope_guard([](){}, [](){
+      std::cout<<"writing records..."<<std::endl;
       RecordLocks::close_records();
       });
     
