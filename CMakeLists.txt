@@ -27,7 +27,8 @@ vacation/args.cpp
 vacation/client.cpp
 vacation/customer.cpp
 vacation/main.cpp
-vacation/manager.cpp)
+vacation/manager.cpp
+vacation/record.cpp)
 
 
 ADD_EXECUTABLE(vacation ${VACATION_SRC})

@@ -9,6 +9,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <ff.h>
+#include "record.h"
 
 
 #include <vector>
@@ -171,6 +172,9 @@ int main(int argc, char *argv[]){
   ff::para<> a;
   a([]() {});
   ff::ff_wait(a);
+  ff::scope_guard([](){}, [](){
+      RecordLocks::close_records();
+      });
     
     /* Run transactions */
     printf("Running clients... ");

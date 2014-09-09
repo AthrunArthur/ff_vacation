@@ -5,6 +5,10 @@
 #include <iostream>
 #include <ff.h>
 #include "args.h"
+#define RECORD_LOCKS
+#ifdef RECORD_LOCKS
+#include "record.h"
+#endif
 
 #define GRANULARIYT 10000
 #define UPDATE_MAX 10000
@@ -76,6 +80,9 @@ void Client::make_reservation(Client_ptr clientPtr, long rt)
     }
     if (isFound) {
       managerPtr->customer_lock().lock();
+#ifdef RECORD_LOCKS
+        RecordLocks::record(&(managerPtr->customer_lock()));
+#endif
         managerPtr->add_customer(customerId);
 	managerPtr->customer_lock().unlock();
     }
@@ -102,6 +109,12 @@ void Client::action_del_customer(std::shared_ptr<Client> clientPtr)
     managerPtr->room_lock().lock();
     managerPtr->flight_lock().lock();
     managerPtr->customer_lock().lock();
+#ifdef RECORD_LOCKS
+    RecordLocks::record(&(managerPtr->car_lock()));
+    RecordLocks::record(&(managerPtr->room_lock()));
+    RecordLocks::record(&(managerPtr->flight_lock()));
+    RecordLocks::record(&(managerPtr->customer_lock()));
+#endif
     
     long bill = managerPtr->query_customer_bill(customerId);
     if ( bill >= 0){
@@ -229,6 +242,9 @@ void Client::client_run(Client_ptr   clientPtr)
 		ff::para<> p;
 		p([tn, rt, pMutex, clientPtr](){
 		  pMutex->lock();
+#ifdef RECORD_LOCKS
+                  RecordLocks::record(pMutex);
+#endif
 		  for(int i = 0; i < tn; i ++)
 		  {
 		    make_reservation(clientPtr, rt);
@@ -261,6 +277,9 @@ void Client::client_run(Client_ptr   clientPtr)
 		ff::para<> p;
 		p([tn, rt, pMutex, clientPtr](){
 		  pMutex->lock();
+#ifdef RECORD_LOCKS
+                  RecordLocks::record(pMutex);
+#endif
 		  for(int i = 0; i < tn; ++i)
 		  {
 		      action_update_label(clientPtr, rt);
