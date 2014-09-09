@@ -172,7 +172,7 @@ int main(int argc, char *argv[]){
   ff::para<> a;
   a([]() {});
   ff::ff_wait(a);
-  ff::scope_guard([](){}, [](){
+  ff::scope_guard _l([](){}, [](){
       std::cout<<"writing records..."<<std::endl;
       RecordLocks::close_records();
       });
@@ -203,6 +203,7 @@ int main(int argc, char *argv[]){
     ff::paragroup pg;
     for (Client_ptr p : clients)
     {
+    std::cout<<"clients!"<<std::endl;
       ff::para<> para;
       para([&p](){Client::client_run(p);});
       pg.add(para);
