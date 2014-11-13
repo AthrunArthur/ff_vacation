@@ -14,6 +14,10 @@ set(LIBS_LINK_LIBS ff pthread)
 link_directories(${PROJECT_SOURCE_DIR}/../bin)
 
 
+if(CACHE_EVAL)
+  add_definitions(-DCACHE_EVAL)
+  set(LIBS_LINK_LIBS ff pthread papi)
+endif(CACHE_EVAL)
 
 #add_definitions(-std=c++11)
 #add_definitions(-g)
