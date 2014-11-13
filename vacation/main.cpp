@@ -200,7 +200,7 @@ int main(int argc, char *argv[]){
     //Parallel part
   time([&clients](){
     
-    ff::paragroup pg;
+    ff::paracontainer pg;
     for (Client_ptr p : clients)
     {
     std::cout<<"clients!"<<std::endl;
