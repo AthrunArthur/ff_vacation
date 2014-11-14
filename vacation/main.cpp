@@ -208,23 +208,11 @@ int main(int argc, char *argv[]){
     EventSet = PAPI_NULL;
     retVal = PAPI_create_eventset(&EventSet);
     assert(retVal == PAPI_OK);
-    //L1 TCM & TCA
-    retVal = PAPI_add_event(EventSet, PAPI_L1_TCM);
-    assert(retVal == PAPI_OK);
-    retVal = PAPI_add_event(EventSet, PAPI_L1_TCA);
-    assert(retVal == PAPI_OK);
-    
     //L2 TCM & TCA
-//     retVal = PAPI_add_event(EventSet, PAPI_L2_TCM);
-//     assert(retVal == PAPI_OK);
-//     retVal = PAPI_add_event(EventSet, PAPI_L2_TCA);
-//     assert(retVal == PAPI_OK);
-    
-    //L3 TCM & TCA
-//     retVal = PAPI_add_event(EventSet, PAPI_L3_TCM);
-//     assert(retVal == PAPI_OK);
-//     retVal = PAPI_add_event(EventSet, PAPI_L3_TCA);
-//     assert(retVal == PAPI_OK);    
+    retVal = PAPI_add_event(EventSet, PAPI_L2_TCM);
+    assert(retVal == PAPI_OK);
+    retVal = PAPI_add_event(EventSet, PAPI_L2_TCA);
+    assert(retVal == PAPI_OK);
     
     retVal = PAPI_start(EventSet);
     assert(retVal == PAPI_OK);
@@ -257,15 +245,9 @@ int main(int argc, char *argv[]){
     retVal = PAPI_destroy_eventset(&EventSet);
     assert(retVal == PAPI_OK);
     PAPI_shutdown(); 
-    //L1 result
-    std::cout << "L1 total cache miss = " << endRecords[0] - startRecords[0] << std::endl;
-    std::cout << "L1 total cache access = " << endRecords[1] - startRecords[1] << std::endl;
     //L2 result
-//     std::cout << "L2 total cache miss = " << endRecords[0] - startRecords[0] << std::endl;
-//     std::cout << "L2 total cache access = " << endRecords[0] - startRecords[0] << std::endl;
-    //L3 result
-//     std::cout << "L3 total cache miss = " << endRecords[0] - startRecords[0] << std::endl;
-//     std::cout << "L3 total cache access = " << endRecords[0] - startRecords[0] << std::endl;
+    std::cout << "L2 total cache miss = " << endRecords[0] - startRecords[0] << std::endl;
+    std::cout << "L2 total cache access = " << endRecords[1] - startRecords[1] << std::endl;
     /*Stop papi trace*/
 #endif 
     puts("done.");
