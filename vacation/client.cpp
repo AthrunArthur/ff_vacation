@@ -208,7 +208,7 @@ void Client::client_run(Client_ptr   clientPtr)
     
     std::cout<<"client_run numOperation : "<<numOperation<<std::endl;
     //parallel part
-    ff::paragroup pg;
+    ff::paracontainer pg;
     bool using_ff_lock = (params::instance()[P_FF_LOCK] == 1);
     
     for (i = 0; i < numOperation; i++) {

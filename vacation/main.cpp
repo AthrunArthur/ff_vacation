@@ -10,7 +10,10 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <ff.h>
 #include "record.h"
-
+#ifdef CACHE_EVAL
+#include <papi.h>
+#include <assert.h>
+#endif
 
 #include <vector>
 
@@ -196,11 +199,32 @@ int main(int argc, char *argv[]){
     std::cout<<"time: "<<elapsed <<" us"<<std::endl;
   };
   
+#ifdef CACHE_EVAL
+    /*Add papi to trace cache miss*/
+    int EventSet,retVal;
+    long long startRecords[2], endRecords[2];
+    retVal = PAPI_library_init(PAPI_VER_CURRENT);
+    assert(retVal == PAPI_VER_CURRENT);
+    EventSet = PAPI_NULL;
+    retVal = PAPI_create_eventset(&EventSet);
+    assert(retVal == PAPI_OK);
+    //L2 TCM & TCA
+    retVal = PAPI_add_event(EventSet, PAPI_L2_TCM);
+    assert(retVal == PAPI_OK);
+    retVal = PAPI_add_event(EventSet, PAPI_L2_TCA);
+    assert(retVal == PAPI_OK);
+    
+    retVal = PAPI_start(EventSet);
+    assert(retVal == PAPI_OK);
+    retVal = PAPI_read(EventSet, startRecords);
+    assert(retVal == PAPI_OK);
+    /*Add papi to trace cache miss*/
+#endif
   
     //Parallel part
   time([&clients](){
     
-    ff::paragroup pg;
+    ff::paracontainer pg;
     for (Client_ptr p : clients)
     {
     std::cout<<"clients!"<<std::endl;
@@ -212,6 +236,20 @@ int main(int argc, char *argv[]){
   }
   );
     
+#ifdef CACHE_EVAL
+    /*Stop papi trace*/
+    retVal = PAPI_stop(EventSet, endRecords);
+    assert(retVal == PAPI_OK);
+    retVal = PAPI_cleanup_eventset(EventSet);
+    assert(retVal == PAPI_OK);
+    retVal = PAPI_destroy_eventset(&EventSet);
+    assert(retVal == PAPI_OK);
+    PAPI_shutdown(); 
+    //L2 result
+    std::cout << "L2 total cache miss = " << endRecords[0] - startRecords[0] << std::endl;
+    std::cout << "L2 total cache access = " << endRecords[1] - startRecords[1] << std::endl;
+    /*Stop papi trace*/
+#endif 
     puts("done.");
     checkTables(managerPtr);
 
